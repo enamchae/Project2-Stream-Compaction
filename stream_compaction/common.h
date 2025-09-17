@@ -114,6 +114,10 @@ namespace StreamCompaction {
             PerformanceTimer& operator=(const PerformanceTimer&) = delete;
             PerformanceTimer& operator=(PerformanceTimer&&) = delete;
 
+            bool cpuTimerStarted() {
+                return cpu_timer_started;
+            }
+
         private:
             cudaEvent_t event_start = nullptr;
             cudaEvent_t event_end = nullptr;
