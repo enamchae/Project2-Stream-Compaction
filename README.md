@@ -10,6 +10,8 @@ CUDA Stream Compaction
 
 # Writeup
 
+## Algorithm comparison
+
 ## Test output
 ```
 

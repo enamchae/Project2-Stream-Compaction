@@ -16,7 +16,7 @@ namespace StreamCompaction {
         int *dev_arr2;
 
         __global__ void add(int n, int skip, int* out, int* in) {
-            int index = blockIdx.x * blockDim.x + threadIdx.x;
+            unsigned long long int index = blockIdx.x * blockDim.x + threadIdx.x;
             if (index >= n) return;
 
             out[index] = in[index];
@@ -27,7 +27,7 @@ namespace StreamCompaction {
         }
 
         __global__ void insert0(int n, int* out, int* in) {
-            int index = blockIdx.x * blockDim.x + threadIdx.x;
+            unsigned long long int index = blockIdx.x * blockDim.x + threadIdx.x;
             if (index >= n) return;
 
             out[index] = index == 0 ? 0 : in[index - 1];

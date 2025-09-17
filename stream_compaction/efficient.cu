@@ -2,6 +2,7 @@
 #include <cuda_runtime.h>
 #include "common.h"
 #include "efficient.h"
+#include <iostream>
 
 namespace StreamCompaction {
     namespace Efficient {
@@ -18,9 +19,9 @@ namespace StreamCompaction {
         int* dev_bools;
 
         __global__ void upsweepStep(int nc, int step, int* arr) {
-            int index = blockIdx.x * blockDim.x + threadIdx.x;
+            unsigned long long int index = blockIdx.x * blockDim.x + threadIdx.x;
 
-            int indexRight = (index + 1) * step - 1;
+            unsigned long long int indexRight = (index + 1) * step - 1;
             if (indexRight >= nc) return;
 
             if (indexRight == nc - 1 && step == nc) {
@@ -28,18 +29,18 @@ namespace StreamCompaction {
                 return;
             }
 
-            int indexLeft = indexRight - step / 2;
+            unsigned long long int indexLeft = indexRight - step / 2;
 
             arr[indexRight] = arr[indexLeft] + arr[indexRight];
         }
 
         __global__ void downsweepStep(int nc, int step, int* arr) {
-            int index = blockIdx.x * blockDim.x + threadIdx.x;
+            unsigned long long int index = blockIdx.x * blockDim.x + threadIdx.x;
 
-            int indexRight = (index + 1) * step - 1;
+            unsigned long long int indexRight = (index + 1) * step - 1;
             if (indexRight >= nc) return;
 
-            int indexLeft = indexRight - step / 2;
+            unsigned long long int indexLeft = indexRight - step / 2;
 
             int right = arr[indexRight];
             arr[indexRight] += arr[indexLeft];
@@ -75,7 +76,7 @@ namespace StreamCompaction {
                 int nBlocks = (nc / step + blockSize - 1) / blockSize;
                 downsweepStep<<<nBlocks, blockSize>>>(nc, step, dev_arr);
             }
-            
+
 
 			cudaMemcpy(odata, dev_arr, n * sizeof(int), cudaMemcpyDeviceToHost);
 
