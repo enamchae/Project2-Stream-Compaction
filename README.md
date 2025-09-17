@@ -9,6 +9,7 @@ CUDA Stream Compaction
 
 
 # Writeup
+This project contains several CPU/GPU prefix sum and stream compaction algorithms to compare their performance.
 
 ## Algorithm comparison
 ![algorithm comparison graphs](/img/graphs.png)
