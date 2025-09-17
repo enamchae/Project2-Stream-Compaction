@@ -40,11 +40,10 @@ namespace StreamCompaction {
             cudaMalloc((void**)&dev_arr1, n * sizeof(int));
             cudaMalloc((void**)&dev_arr2, n * sizeof(int));
 
+            cudaMemcpy(dev_arr1, idata, n * sizeof(int), cudaMemcpyHostToDevice);
+
 
             timer().startGpuTimer();
-
-            
-			cudaMemcpy(dev_arr1, idata, n * sizeof(int), cudaMemcpyHostToDevice);
 
 
 			int blockSize = 256;
@@ -65,10 +64,11 @@ namespace StreamCompaction {
             }
             
 
-			cudaMemcpy(odata, curOut, n * sizeof(int), cudaMemcpyDeviceToHost);
-
             
             timer().endGpuTimer();
+            
+            
+            cudaMemcpy(odata, curOut, n * sizeof(int), cudaMemcpyDeviceToHost);
 
             cudaFree(dev_arr1);
             cudaFree(dev_arr2);

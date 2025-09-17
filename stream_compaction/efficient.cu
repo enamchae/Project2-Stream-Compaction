@@ -24,11 +24,6 @@ namespace StreamCompaction {
             unsigned long long int indexRight = (index + 1) * step - 1;
             if (indexRight >= nc) return;
 
-            if (indexRight == nc - 1 && step == nc) {
-                arr[indexRight] = 0;
-                return;
-            }
-
             unsigned long long int indexLeft = indexRight - step / 2;
 
             arr[indexRight] = arr[indexLeft] + arr[indexRight];
@@ -55,13 +50,13 @@ namespace StreamCompaction {
 
             cudaMalloc((void**)&dev_arr, nc * sizeof(int));
 
+            cudaMemcpy(dev_arr, idata, n * sizeof(int), cudaMemcpyHostToDevice);
+            cudaMemset(dev_arr + n, 0, (nc - n) * sizeof(int));
+
 
             timer().startGpuTimer();
             // TODO
 
-            
-			cudaMemcpy(dev_arr, idata, n * sizeof(int), cudaMemcpyHostToDevice);
-			cudaMemset(dev_arr + n, 0, (nc - n) * sizeof(int));
 
 
 			int blockSize = 256;
@@ -72,17 +67,19 @@ namespace StreamCompaction {
                 upsweepStep<<<nBlocks, blockSize>>>(nc, step, dev_arr);
             }
 
+			cudaMemset(dev_arr + nc - 1, 0, sizeof(int));
+
             for (int step = nc; step >= 2; step >>= 1) {
                 int nBlocks = (nc / step + blockSize - 1) / blockSize;
                 downsweepStep<<<nBlocks, blockSize>>>(nc, step, dev_arr);
             }
 
 
-			cudaMemcpy(odata, dev_arr, n * sizeof(int), cudaMemcpyDeviceToHost);
-
-
             timer().endGpuTimer();
 
+
+
+            cudaMemcpy(odata, dev_arr, n * sizeof(int), cudaMemcpyDeviceToHost);
 
             cudaFree(dev_arr);
         }
@@ -97,19 +94,14 @@ namespace StreamCompaction {
          * @returns      The number of elements remaining after compaction.
          */
         int compact(int n, int *odata, const int *idata) {
+            if (n == 0) return 0;
+
+
             int nc = 1 << ilog2ceil(n);
 
             cudaMalloc((void**)&dev_arr, nc * sizeof(int));
-            cudaMalloc((void**)&dev_arr2, nc * sizeof(int));
+            cudaMalloc((void**)&dev_arr2, n * sizeof(int));
             cudaMalloc((void**)&dev_bools, nc * sizeof(int));
-
-
-            timer().startGpuTimer();
-
-            if (n == 0) {
-                timer().endGpuTimer();
-                return 0;
-            }
 
 
             int blockSize = 256;
@@ -119,12 +111,17 @@ namespace StreamCompaction {
             cudaMemcpy(dev_arr, idata, n * sizeof(int), cudaMemcpyHostToDevice);
             cudaMemset(dev_arr + n, 0, (nc - n) * sizeof(int));
 
+
+            timer().startGpuTimer();
+
             Common::kernMapToBoolean<<<nBlocksOuter, blockSize>>>(nc, dev_bools, dev_arr);
 
             for (int step = 2; step <= nc; step <<= 1) {
                 int nBlocks = (nc / step + blockSize - 1) / blockSize;
                 upsweepStep<<<nBlocks, blockSize>>>(nc, step, dev_bools);
             }
+
+            cudaMemset(dev_bools + nc - 1, 0, sizeof(int));
 
             for (int step = nc; step >= 2; step >>= 1) {
                 int nBlocks = (nc / step + blockSize - 1) / blockSize;
@@ -133,13 +130,15 @@ namespace StreamCompaction {
 
             Common::kernScatter<<<nBlocksOuter, blockSize>>>(n, dev_arr2, dev_arr, NULL, dev_bools);
 
+
+            timer().endGpuTimer();
+
+
+
             int nFinal;
             cudaMemcpy(&nFinal, dev_bools + nc - 1, sizeof(int), cudaMemcpyDeviceToHost);
 
             cudaMemcpy(odata, dev_arr2, nFinal * sizeof(int), cudaMemcpyDeviceToHost);
-
-
-            timer().endGpuTimer();
 
 
             cudaFree(dev_arr);

@@ -11,6 +11,14 @@ CUDA Stream Compaction
 # Writeup
 
 ## Algorithm comparison
+![algorithm comparison graphs](/img/graphs.png)
+
+The above log-log plots show the running times of each of the implemented scan algorithms, at power-of-2 array sizes (left) and 3 less than each of those power-of-2 array sizes (right). Initial memory setup using `cudaMalloc`, `cudaMemset`, and `thrust::{host_vector, copy}` is excluded from the timings as per Part 7 of [INSTRUCTION.md](INSTRUCTION.md).
+
+For small arrays, CPU scan was the fastest, followed by naive on average, then work-efficient, then thrust. However, throughout array sizes in the low millions, the order reverses: thrust is the fastest, followed by work-efficient, then naive, and then CPU. As the array sizes grow large, they all seem to increase by the same power (about linear). The reversal of the order would likely be due to overhead of the kernel launches at the smaller array sizes and/or possible block size misalignment with the number of threads. As the arrays grow large, however, the benefits of parallelization and GPU memory access optimization become more pronounced the more times the kernels are launched and the more blocks that are instantiated, even if the long-term complexity of all the algorithms remains $O(n)$ (not $O(\log(n))$ for the GPU implementations as the number of concurrent threads will be capped to be some fixed number based on the GPU hardware).
+
+## Extra credit
+As requested in Part 5 of [INSTRUCTION.md](INSTRUCTION.md), the work-efficient GPU implementation is over 4 times faster than the CPU implementation for array sizes greater than ~1 million even without further optimization.
 
 ## Test output
 ```
