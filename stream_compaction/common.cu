@@ -38,7 +38,7 @@ namespace StreamCompaction {
             int index = blockIdx.x * blockDim.x + threadIdx.x;
             if (index >= n) return;
 
-            if (bools[index] == 0) return;
+            if (idata[index] == 0) return;
 
             odata[indices[index]] = idata[index];
         }

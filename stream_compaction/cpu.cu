@@ -65,19 +65,19 @@ namespace StreamCompaction {
             timer().startCpuTimer();
 
 
-            odata[0] = 0;
-            for (int i = 1; i < n; i++) {
-				odata[i] = idata[i] == 0 ? 1 : 0;
+            for (int i = 0; i < n; i++) {
+				odata[i] = idata[i] == 0 ? 0 : 1;
             }
 
             int* offsets = new int[n];
 
             scan(n, offsets, odata);
             for (int i = 0; i < n; i++) {
-                odata[i - offsets[i]] = idata[i];
+                if (idata[i] == 0) continue;
+                odata[offsets[i]] = idata[i];
             }
 
-            int out = n - offsets[n - 1] - (idata[n - 1] == 0 ? 1 : 0);
+            int out = offsets[n - 1];
 
             delete[] offsets;
 
