@@ -63,7 +63,7 @@ namespace StreamCompaction {
 			cudaMemset(dev_arr + n, 0, (nc - n) * sizeof(int));
 
 
-			int blockSize = 128;
+			int blockSize = 256;
 			int nBlocks = (nc + blockSize - 1) / blockSize;
 
 
@@ -98,7 +98,7 @@ namespace StreamCompaction {
             int nc = 1 << ilog2ceil(n);
 
             cudaMalloc((void**)&dev_arr, nc * sizeof(int));
-            cudaMalloc((void**)&dev_arr2, n * sizeof(int));
+            cudaMalloc((void**)&dev_arr2, nc * sizeof(int));
             cudaMalloc((void**)&dev_bools, nc * sizeof(int));
 
 
@@ -110,26 +110,24 @@ namespace StreamCompaction {
             }
 
 
-            int blockSize = 128;
+            int blockSize = 256;
             int nBlocks = (nc + blockSize - 1) / blockSize;
 
 
             cudaMemcpy(dev_arr, idata, n * sizeof(int), cudaMemcpyHostToDevice);
             cudaMemset(dev_arr + n, 0, (nc - n) * sizeof(int));
 
-            Common::kernMapToBoolean<<<blockSize, nBlocks>>>(nc, dev_bools, dev_arr);
+            Common::kernMapToBoolean<<<nBlocks, blockSize>>>(nc, dev_bools, dev_arr);
 
             for (int step = 2; step <= nc; step <<= 1) {
-                upsweepStep << <nBlocks, blockSize >> > (nc, step, dev_bools);
+                upsweepStep<<<nBlocks, blockSize>>>(nc, step, dev_bools);
             }
 
             for (int step = nc; step >= 2; step >>= 1) {
-                downsweepStep << <nBlocks, blockSize >> > (nc, step, dev_bools);
+                downsweepStep<<<nBlocks, blockSize>>>(nc, step, dev_bools);
             }
 
-
-
-            Common::kernScatter<<<blockSize, nBlocks>>>(n, dev_arr2, dev_arr, NULL, dev_bools);
+            Common::kernScatter<<<nBlocks, blockSize>>>(n, dev_arr2, dev_arr, NULL, dev_bools);
 
             int nFinal;
             cudaMemcpy(&nFinal, dev_bools + nc - 1, sizeof(int), cudaMemcpyDeviceToHost);
